@@ -1,0 +1,1 @@
+to add nodemon as a dev dependency use - npm i -D nodemon

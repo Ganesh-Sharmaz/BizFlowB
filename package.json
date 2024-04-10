@@ -5,7 +5,6 @@
   "name": "bizflowb",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
   },
@@ -16,5 +15,9 @@
   "repository": {
     "type": "git",
     "url": "BizFlowB"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+    
   }
 }
