@@ -5,6 +5,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js"
 
+const generateToken = (id) => {
+    return jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: "1d"})
+}
+
 const registerUser = asyncHandler( async (req, res) => {
 
     const {fullname, email, username, password, number, bio} = req.body
@@ -33,6 +37,8 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Avatar file is also required");
     }
 
+    const token = generateToken()
+
     const user = await User.create({
         fullname,
         avatar: avatar.url,
@@ -40,7 +46,8 @@ const registerUser = asyncHandler( async (req, res) => {
         email,
         password,
         number,
-        bio
+        bio,
+        token
     })
     const createdUser = await User.findById(user._id).select(
         "-password"
