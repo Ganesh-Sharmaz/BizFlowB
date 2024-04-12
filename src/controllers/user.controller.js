@@ -8,16 +8,30 @@ import jwt from "jsonwebtoken"
 import cookieParser from "cookie-parser";
 
 
-const generateToken = (id) => {
-    return jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: "1d"})
+const generateAccessAndRefreshToken = async(userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave: false})
+
+        return {refreshToken, accessToken}
+        
+    } catch (error) {
+        throw new ApiError(500, "something went wrong while generating access token and refresh token", error);
+        
+    }
 }
 
-const token = generateToken(User._id)
+// const token = generateToken(User._id)
 
 
 const registerUser = asyncHandler( async (req, res) => {
 
     const {fullname, email, username, password, number, bio} = req.body
+    console.log(fullname, email, username, password, number, bio)
     if(
         [fullname, email, username, password, number].some((feild) => feild?.trim() === "")
     ) {
@@ -45,13 +59,13 @@ const registerUser = asyncHandler( async (req, res) => {
 
     // const token = generateToken(user._id)
 
-    res.cookie("token", token), {
-        path: "/",
-        httpOnly: true,
-        expires: new Date(Date.now() + 1000 * 86400),
-        sameSite: "none",
-        secure: true                                                                            
-    }
+    // res.cookie("token", token), {
+    //     path: "/",
+    //     httpOnly: true,
+    //     expires: new Date(Date.now() + 1000 * 86400),
+    //     sameSite: "none",
+    //     secure: true                                                                            
+    // }
 
 
     const user = await User.create({
@@ -65,21 +79,21 @@ const registerUser = asyncHandler( async (req, res) => {
         
     })
 
-    if (user) {
-        const { _id, name, email, photo, phone, bio } = user;
-        res.status(201).json({
-          _id,
-          name,
-          email,
-          photo,
-          phone,
-          bio,
-          token,
-        });
-      } else {
-        res.status(400);
-        throw new Error("Invalid user data");
-      }
+    // if (user) {
+    //     const { _id, name, email, photo, phone, bio } = user;
+    //     res.status(201).json({
+    //       _id,
+    //       name,
+    //       email,
+    //       photo,
+    //       phone,
+    //       bio,
+    //       token,
+    //     });
+    //   } else {
+    //     res.status(400);
+    //     throw new Error("Invalid user data");
+    //   }
 
     const createdUser = await User.findById(user._id).select(
         "-password"
@@ -92,10 +106,17 @@ const registerUser = asyncHandler( async (req, res) => {
     )
 })
 
-const loginUser = asyncHandler (async (req, res) => {
+const loginUser = asyncHandler( async (req, res) => {
 
-    const { email, username, password } = req.body
-    console.log(email, password);
+    // req body -> data
+    // usename or email
+    // find the user
+    // access and refresh token
+    // send cookies
+    // login user
+    console.log(req.body);
+    const { email, username, password} = req.body
+    
 
     if (!email && !username) {
         throw new ApiError(400, 'username or email is required');
@@ -115,23 +136,37 @@ const loginUser = asyncHandler (async (req, res) => {
         throw new ApiError(404, "invalid user credentials")
     }
 
-    // if (user && isPasswordValid) {
-    //     const { _id, name, email, photo, phone, bio } = user;
-    //     res.status(201).json({
-    //       _id,
-    //       name,
-    //       email,
-    //       photo,
-    //       phone,
-    //       bio,
-    //       token,
-    //     });
-    //   } else {
-    //     res.status(400);
-    //     throw new Error("user not data");
-    //   }
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
 
-} )
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    console.log("working")
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken, refreshToken
+            
+            },
+            "user logged in successfully"
+            
+        )
+
+    )
+
+
+    
+
+})
 
 export { registerUser, loginUser }
 

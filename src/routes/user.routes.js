@@ -14,6 +14,6 @@ router.route("/register").post(
     registerUser
 );
 
-router.route("/login").post(loginUser)
+router.route("/login").get(loginUser)
 
 export default router
