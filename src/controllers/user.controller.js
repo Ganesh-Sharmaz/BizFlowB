@@ -4,10 +4,16 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js"
+import jwt from "jsonwebtoken"
+import cookieParser from "cookie-parser";
+
 
 const generateToken = (id) => {
     return jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: "1d"})
 }
+
+const token = generateToken(User._id)
+
 
 const registerUser = asyncHandler( async (req, res) => {
 
@@ -37,7 +43,16 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Avatar file is also required");
     }
 
-    const token = generateToken()
+    // const token = generateToken(user._id)
+
+    res.cookie("token", token), {
+        path: "/",
+        httpOnly: true,
+        expires: new Date(Date.now() + 1000 * 86400),
+        sameSite: "none",
+        secure: true                                                                            
+    }
+
 
     const user = await User.create({
         fullname,
@@ -47,8 +62,25 @@ const registerUser = asyncHandler( async (req, res) => {
         password,
         number,
         bio,
-        token
+        
     })
+
+    if (user) {
+        const { _id, name, email, photo, phone, bio } = user;
+        res.status(201).json({
+          _id,
+          name,
+          email,
+          photo,
+          phone,
+          bio,
+          token,
+        });
+      } else {
+        res.status(400);
+        throw new Error("Invalid user data");
+      }
+
     const createdUser = await User.findById(user._id).select(
         "-password"
     )
@@ -60,5 +92,48 @@ const registerUser = asyncHandler( async (req, res) => {
     )
 })
 
-export { registerUser }
+const loginUser = asyncHandler (async (req, res) => {
+
+    const { email, username, password } = req.body
+    console.log(email, password);
+
+    if (!email && !username) {
+        throw new ApiError(400, 'username or email is required');
+    }
+
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+
+    if (!user) {
+        throw new ApiError(404, "user does not exist")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new ApiError(404, "invalid user credentials")
+    }
+
+    // if (user && isPasswordValid) {
+    //     const { _id, name, email, photo, phone, bio } = user;
+    //     res.status(201).json({
+    //       _id,
+    //       name,
+    //       email,
+    //       photo,
+    //       phone,
+    //       bio,
+    //       token,
+    //     });
+    //   } else {
+    //     res.status(400);
+    //     throw new Error("user not data");
+    //   }
+
+} )
+
+export { registerUser, loginUser }
+
+
 
