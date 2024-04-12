@@ -268,83 +268,81 @@ const loginStatus = asyncHandler(async (req, res) => {
 
 const updateUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
-    console.log(user)
-  
+    console.log(user);
+
     if (user) {
-      const { fullname, email, bio } = user;
-      user.email = email;
-      user.fullname = req.body.fullname || fullname;
-      user.bio = req.body.bio || bio;
-  
-      const updatedUser = await user.save();
-      res.status(200).json({
-        _id: updatedUser._id,
-        name: updatedUser.fullname,
-        email: updatedUser.email,   
-        bio: updatedUser.bio,
-      });
+        const { fullname, email, bio } = user;
+        user.email = email;
+        user.fullname = req.body.fullname || fullname;
+        user.bio = req.body.bio || bio;
+
+        const updatedUser = await user.save();
+        res.status(200).json({
+            _id: updatedUser._id,
+            name: updatedUser.fullname,
+            email: updatedUser.email,
+            bio: updatedUser.bio,
+        });
     } else {
-      res.status(404);
-      throw new Error("User not found");
+        res.status(404);
+        throw new Error("User not found");
     }
 });
 
-const changePassword = asyncHandler(async(req, res) => {
-    const {oldPassword, newPassword} = req.body
+const changePassword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
 
-    
-
-    const user = await User.findById(req.user?._id)
-    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+    const user = await User.findById(req.user?._id);
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
     if (!isPasswordCorrect) {
-        throw new ApiError(400, "Invalid old password")
+        throw new ApiError(400, "Invalid old password");
     }
 
-    user.password = newPassword
-    await user.save({validateBeforeSave: false})
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Password changed successfully"))
-})
+        .status(200)
+        .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
 
 const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
     const user = await User.findOne({ email });
-  
+
     if (!user) {
-      res.status(404);
-      throw new Error("User does not exist");
+        res.status(404);
+        throw new Error("User does not exist");
     }
-  
+
     // Delete token if it exists in DB
     let token = await accessToken.findOne({ userId: user._id });
     if (token) {
-      await token.deleteOne();
+        await token.deleteOne();
     }
-  
+
     // Create Reste Token
     let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
     console.log(resetToken);
-  
+
     // Hash token before saving to DB
     const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-  
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
     // Save Token to DB
     await new accessToken({
-      userId: user._id,
-      token: hashedToken,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
+        userId: user._id,
+        token: hashedToken,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
     }).save();
-  
+
     // Construct Reset Url
     const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
-  
+
     // Reset Email
     const message = `
         <h2>Hello ${user.name}</h2>
@@ -359,15 +357,15 @@ const forgotPassword = asyncHandler(async (req, res) => {
     const subject = "Password Reset Request";
     const send_to = user.email;
     const sent_from = process.env.EMAIL_USER;
-  
+
     try {
-      await sendEmail(subject, message, send_to, sent_from);
-      res.status(200).json({ success: true, message: "Reset Email Sent" });
+        await sendEmail(subject, message, send_to, sent_from);
+        res.status(200).json({ success: true, message: "Reset Email Sent" });
     } catch (error) {
-      res.status(500);
-      throw new Error("Email not sent, please try again");
+        res.status(500);
+        throw new Error("Email not sent, please try again");
     }
-  });
+});
 
 export {
     registerUser,
@@ -377,5 +375,6 @@ export {
     getUser,
     loginStatus,
     updateUser,
-    changePassword
+    changePassword,
+    forgotPassword
 };
