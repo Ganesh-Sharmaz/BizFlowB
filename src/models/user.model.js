@@ -37,10 +37,7 @@ const userSchema = new Schema(
                 6,
                 "password length should be atleast 6 characters long",
             ],
-            maxLength: [
-                23,
-                "password length should be less than 23 characters",
-            ],
+            
         },
         avatar: {
             type: String,
@@ -77,8 +74,8 @@ userSchema.methods.generateAccessToken = function(){
         {
             _id: this._id,
             email: this.email,
-            fullName: this.fullName,
-            username: this.username
+            username: this.username,
+            fullName: this.fullName
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -86,11 +83,11 @@ userSchema.methods.generateAccessToken = function(){
         }
     )
 }
-
 userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {
             _id: this._id,
+            
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
