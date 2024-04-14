@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
+import { Token } from "../models/token.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
-import cookieParser from "cookie-parser";
 import crypto from "crypto";
+import { sendEmail } from "../utils/sendEmail.js";
 
 const generateAccessAndRefereshTokens = async (userId) => {
     try {
@@ -119,9 +120,7 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "username or email is required");
     }
 
-    const user = await User.findOne({
-        $or: [{ username }, { email }],
-    });
+    const user = await User.findOne({email})
 
     if (!user) {
         throw new ApiError(404, "User does not exist");
@@ -187,6 +186,39 @@ const logoutUser = asyncHandler(async (req, res) => {
         .clearCookie("refreshToken", options)
         .json(new ApiResponse(200, {}, "User logged Out"));
 });
+
+const updateUserAvatar = asyncHandler( async (req, res) => {
+
+    const avatarLocalPath = req.file?.path
+
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is missing")        
+    }
+
+    const avatar = uploadOnCloudinary(avatarLocalPath)
+
+    if (!avatar) {
+        throw new ApiError(400, "Error while uploading the avatar")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        {new: true}
+        
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200 ,user , "Avatar updated successfully")
+    )
+
+})
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken =
@@ -317,12 +349,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 
     // Delete token if it exists in DB
-    let token = await accessToken.findOne({ userId: user._id });
+    let token = await Token.findOne({ userId: user._id });
     if (token) {
         await token.deleteOne();
     }
 
-    // Create Reste Token
+    // Create Reset Token
     let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
     console.log(resetToken);
 
@@ -333,7 +365,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
         .digest("hex");
 
     // Save Token to DB
-    await new accessToken({
+    await new Token({
         userId: user._id,
         token: hashedToken,
         createdAt: Date.now(),
@@ -345,27 +377,60 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     // Reset Email
     const message = `
-        <h2>Hello ${user.name}</h2>
+        <h2>Hello ${user.fullname}</h2>
         <p>Please use the url below to reset your password</p>  
         <p>This reset link is valid for only 30minutes.</p>
   
         <a href=${resetUrl} clicktracking=off>${resetUrl}</a>
   
         <p>Regards...</p>
-        <p>Pinvent Team</p>
+        <p>Bizflow Team</p>
       `;
     const subject = "Password Reset Request";
     const send_to = user.email;
     const sent_from = process.env.EMAIL_USER;
+    console.log("working");
 
     try {
         await sendEmail(subject, message, send_to, sent_from);
         res.status(200).json({ success: true, message: "Reset Email Sent" });
     } catch (error) {
         res.status(500);
-        throw new Error("Email not sent, please try again");
+        throw new ApiError(400, "Email not sent, please try again");
     }
 });
+
+const resetPassword = asyncHandler(async (req, res) => {
+    const { password } = req.body;
+    const { resetToken } = req.params;
+
+    // Hash token, then compare to Token in DB
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    // fIND tOKEN in DB
+    const userToken = await Token.findOne({
+        token: hashedToken,
+        expiresAt: { $gt: Date.now() },
+    });
+
+    if (!userToken) {
+        res.status(404);
+        throw new Error("Invalid or Expired Token");
+    }
+
+    // Find user
+    const user = await User.findOne({ _id: userToken.userId });
+    user.password = password;
+    await user.save();
+    res.status(200).json({
+        message: "Password Reset Successful, Please Login",
+    });
+});
+
+
 
 export {
     registerUser,
@@ -376,5 +441,7 @@ export {
     loginStatus,
     updateUser,
     changePassword,
-    forgotPassword
+    forgotPassword,
+    resetPassword,
+    updateUserAvatar
 };

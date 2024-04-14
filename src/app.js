@@ -18,7 +18,9 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 
 import userRouter from "./routes/user.routes.js"
+import productRouter from "./routes/product.routes.js"
 
 app.use("/api/v1/users", userRouter)
+app.use("/api/v1/products", productRouter)
 
 export { app };
