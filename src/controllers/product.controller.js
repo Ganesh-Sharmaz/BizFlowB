@@ -54,13 +54,13 @@ console.log(req.files?.image[0]?.path)
 
 const getProducts = asyncHandler(async (req, res) => {
   const products = await Product.find({ user: req.user.id }).sort("-createdAt");
+  console.log(req.user.id)
   res.status(200).json(products);
 });
 
 const getProduct = asyncHandler(async (req, res) => {
-
   const product = await Product.findById(req.params.id);
-  // console.log(req.params.id)
+  
   // if product doesnt exist
   if (!product) {
     res.status(404);
