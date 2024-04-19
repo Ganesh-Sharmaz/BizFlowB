@@ -17,9 +17,9 @@ const createProduct = asyncHandler(async (req, res) => {
         res.status(400);
         throw new ApiError(400, "Please fill in all fields");
     }
-    console.log(req.files?.image[0]?.path);
+    // console.log(req.files?.image[0]?.path);
     const imageLocalPath = req.files?.image[0]?.path;
-
+    console.log(imageLocalPath)
     if (!imageLocalPath) {
         throw new ApiError(400, "image file path is required");
     }
