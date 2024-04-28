@@ -56,9 +56,12 @@ const getProducts = asyncHandler(async (req, res) => {
     );
     console.log(req.user.id);
     res.status(200).json(products);
+    for (const product of products){
+        console.log(product)
+    }
 });
 
-const getProduct = asyncHandler(async (req, res) => {
+const getProduct = asyncHandler(async (req, res) => {   
     const product = await Product.findById(req.params.id);
 
     // if product doesnt exist

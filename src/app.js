@@ -20,9 +20,11 @@ app.use(bodyParser.json());
 import userRouter from "./routes/user.routes.js"
 import productRouter from "./routes/product.routes.js"
 import contact from "./routes/contact.routes.js"
+import customerRouter from "./routes/customer.routes.js"
 
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/products", productRouter)
 app.use("/api/v1/contactus", contact)
+app.use("/api/v1/customers", customerRouter)
 
 export { app };
