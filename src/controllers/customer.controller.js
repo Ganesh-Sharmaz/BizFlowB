@@ -51,7 +51,7 @@ const getSingleCustomer = asyncHandler(async (req, res) => {
 
 const updateCustomer = asyncHandler(async (req, res) => {
     const { fullname, number, receivables, companyname } = req.body;
-    const { id } = req.params.id;
+    const { id } = req.params;
 
     const customer = Customer.findById(id);
 
@@ -60,12 +60,41 @@ const updateCustomer = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Customer not found");
 
     }
-    if (customer.user.toString() !== req.user.id) {
-        res.status(401);
-        throw new ApiError("User not authorized");
-    }
+    // console.log(customer)
+    // if (customer.user.toString() !== req.user.id) {
+    //     res.status(401);
+    //     throw new ApiError("User not authorized");
+    // }
+    console.log(id)
+    const updateCustomer = await Customer.findByIdAndUpdate(
+        { _id: id },
+        {
+            fullname,
+            companyname,
+            number,
+            receivables,
+            
+        },
+        {
+            new: true,
+            runValidators: true,
+        }
+    );
+    res.status(200).json(updateCustomer);
 
-    
 });
 
-export { createCustomer, getCustomers, getSingleCustomer, updateCustomer };
+const deleteCustomer = asyncHandler( async (req, res ) => {
+    // const id = req.params
+    const customer = Customer.findById(req.params.id)
+    if(!customer) {
+        res.status(404)
+        throw new ApiError(400, "customer not found")
+    }
+
+    await customer.deleteOne();
+    res.status(200).json({ message: "Customer deleted." });
+    
+})
+
+export { createCustomer, getCustomers, getSingleCustomer, updateCustomer, deleteCustomer };
