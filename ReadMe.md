@@ -72,10 +72,6 @@ To set up the BizFlow backend on your local machine, follow these steps:
 6. Run the application using `npm start`.
 7. Access the backend API endpoints and explore the functionality.
 
-## API Documentation
-
-If you choose to document your API endpoints, you can use tools like Swagger to generate documentation. Add Swagger configuration to your project and document your endpoints accordingly.
-
 ## Contributing
 
 Contributions to enhance existing features or add new functionalities are welcome! If you'd like to contribute, please fork the repository, make your changes, and submit a pull request.
