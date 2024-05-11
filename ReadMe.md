@@ -24,7 +24,7 @@ The frontend development is currently in progress and will be available soon.
 
 The repository is structured as follows:
 
-'''bash
+```bash
 BizFlow
 │
 ├── config
@@ -58,7 +58,7 @@ BizFlow
 │
 └── server.js                  # Main application file
 
-'''
+```
 
 ## Setup Instructions
 
